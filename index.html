@@ -3,238 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClipScholar — Turn long videos into focused clips</title>
+<title>ClipScholar</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f0f13; --surface: #1a1a22; --surface2: #22222e;
-    --accent: #7c6cfa; --accent2: #a78bfa; --text: #f0f0f5;
-    --muted: #8888a0; --border: #2a2a38; --success: #34d399;
-    --error: #f87171; --radius: 12px;
-  }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; line-height: 1.6; }
-  header { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
-  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-  .hero { max-width: 720px; margin: 80px auto 0; padding: 0 24px; text-align: center; }
-  .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 5vw, 52px); font-weight: 700; line-height: 1.15; margin-bottom: 16px; background: linear-gradient(135deg, #f0f0f5 0%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .hero p { color: var(--muted); font-size: 18px; margin-bottom: 48px; }
-  .input-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; max-width: 720px; margin: 0 auto 48px; }
-  .input-row { display: flex; gap: 12px; margin-bottom: 16px; }
-  input[type="text"] { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; color: var(--text); font-size: 15px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
-  input[type="text"]:focus { border-color: var(--accent); }
-  input[type="text"]::placeholder { color: var(--muted); }
-  .btn-primary { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 14px 28px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: opacity 0.2s, transform 0.1s; white-space: nowrap; }
-  .btn-primary:hover { opacity: 0.9; }
-  .btn-primary:active { transform: scale(0.98); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status { display: none; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; }
-  .status.show { display: flex; }
-  .status.processing { background: rgba(124,108,250,0.1); border: 1px solid rgba(124,108,250,0.3); color: var(--accent2); }
-  .status.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--error); }
-  .spinner { width: 16px; height: 16px; border: 2px solid rgba(124,108,250,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .clips-section { max-width: 900px; margin: 0 auto 80px; padding: 0 24px; display: none; }
-  .clips-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-  .clips-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
-  .clips-count { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--muted); }
-  .clips-grid { display: grid; gap: 20px; }
-  .clip-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color 0.2s; }
-  .clip-card:hover { border-color: var(--accent); }
-  .clip-video-wrapper { background: #000; }
-  .clip-video-wrapper video { width: 100%; display: block; max-height: 400px; object-fit: contain; }
-  .clip-info { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .clip-meta { flex: 1; }
-  .clip-number { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent2); margin-bottom: 4px; }
-  .clip-name { font-size: 16px; font-weight: 600; }
-  .clip-time { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .btn-download { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; color: var(--text); font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: background 0.2s, border-color 0.2s; white-space: nowrap; }
-  .btn-download:hover { background: var(--accent); border-color: var(--accent); }
-  .how-section { max-width: 720px; margin: 0 auto 80px; padding: 0 24px; }
-  .how-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 32px; color: var(--muted); }
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center; }
-  .step-icon { font-size: 28px; margin-bottom: 10px; }
-  .step-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-  .step-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
-  @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } .input-row { flex-direction: column; } .btn-primary { width: 100%; } }
+body { margin: 0; font-family: sans-serif; background: #0f0f13; color: #f0f0f5; min-height: 100vh; }
+header { padding: 20px 32px; border-bottom: 1px solid #2a2a38; display: flex; align-items: center; gap: 12px; }
+.logo { font-size: 22px; font-weight: 700; }
+.hero { max-width: 720px; margin: 80px auto 0; padding: 0 24px; text-align: center; }
+.hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; color: #a78bfa; }
+.hero p { color: #8888a0; font-size: 18px; margin-bottom: 48px; }
+.card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 12px; padding: 32px; max-width: 720px; margin: 0 auto 48px; }
+.row { display: flex; gap: 12px; margin-bottom: 16px; }
+input { flex: 1; background: #0f0f13; border: 1px solid #2a2a38; border-radius: 8px; padding: 14px 18px; color: #f0f0f5; font-size: 15px; outline: none; }
+input:focus { border-color: #7c6cfa; }
+button { background: #7c6cfa; color: white; border: none; border-radius: 8px; padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.msg { display: none; padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-top: 8px; }
+.msg.show { display: block; }
+.processing { background: rgba(124,108,250,0.1); border: 1px solid rgba(124,108,250,0.3); color: #a78bfa; }
+.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #f87171; }
+.clips { max-width: 900px; margin: 0 auto 80px; padding: 0 24px; display: none; }
+.clips h2 { font-size: 22px; margin-bottom: 24px; }
+.clip-card { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.clip-card video { width: 100%; display: block; max-height: 400px; }
+.clip-info { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+.clip-title { font-size: 16px; font-weight: 600; }
+.clip-time { font-size: 13px; color: #8888a0; margin-top: 4px; }
+.dl-btn { background: #22222e; border: 1px solid #2a2a38; border-radius: 8px; padding: 8px 16px; color: #f0f0f5; font-size: 13px; text-decoration: none; }
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">
-    <div class="logo-icon">✂</div>
-    ClipScholar
+<header><div class="logo">✂ ClipScholar</div></header>
+<div class="hero">
+  <h1>Turn long videos into focused clips</h1>
+  <p>Paste any YouTube link. Get one short clip per topic.</p>
+</div>
+<div class="card">
+  <div class="row">
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." />
+    <button id="btn" onclick="go()">Process Video</button>
   </div>
-</header>
-<main>
-  <div class="hero">
-    <h1>Turn long videos into focused clips</h1>
-    <p>Paste any YouTube link. Get one short clip per topic — no content missed.</p>
-  </div>
-  <div class="input-card">
-    <div class="input-row">
-      <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." />
-      <button class="btn-primary" id="processBtn" onclick="processVideo()">Process Video</button>
-    </div>
-    <div class="status processing" id="statusProcessing">
-      <div class="spinner"></div>
-      <span id="statusText">Processing your video — this takes 2-3 minutes...</span>
-    </div>
-    <div class="status error" id="statusError">
-      <span>⚠</span>
-      <span id="errorText">Something went wrong. Please try again.</span>
-    </div>
-  </div>
-  <div class="clips-section" id="clipsSection">
-    <div class="clips-header">
-      <div class="clips-title">Your Study Clips</div>
-      <div class="clips-count" id="clipsCount">0 clips</div>
-    </div>
-    <div class="clips-grid" id="clipsGrid"></div>
-  </div>
-  <div class="how-section" id="howSection">
-    <div class="how-title">How it works</div>
-    <div class="steps">
-      <div class="step"><div class="step-icon">🔗</div><div class="step-label">Paste a link</div><div class="step-desc">Any YouTube video — lectures, documentaries, tutorials</div></div>
-      <div class="step"><div class="step-icon">🤖</div><div class="step-label">AI segments it</div><div class="step-desc">Transcribes and splits by topic automatically</div></div>
-      <div class="step"><div class="step-icon">▶</div><div class="step-label">Watch the clips</div><div class="step-desc">One clip per topic. Scroll through. Download any.</div></div>
-    </div>
-  </div>
-</main>
+  <div class="msg processing" id="pmsg">Processing your video — this takes 2-3 minutes...</div>
+  <div class="msg error" id="emsg">Error occurred. Please try again.</div>
+</div>
+<div class="clips" id="clips">
+  <h2 id="clips-title">Your Study Clips</h2>
+  <div id="clips-grid"></div>
+</div>
 <script>
-  // ============================================================
-  // CONFIGURATION — update these two values before deploying
-  // ============================================================
-  const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/tcdmsacq1uyhuerysqwkwfwa4fm7t7gd';
-  const SERVER_URL = 'https://step-nimbly-antacid.ngrok-free.dev'; // e.g. https://step-nimbly-antacid.ngrok-free.app
-  // ============================================================
+const SERVER = 'https://step-nimbly-antacid.ngrok-free.dev';
+const MAKE = 'https://hook.eu1.make.com/tcdmsacq1uyhuerysqwkwfwa4fm7t7gd';
 
-  let pollInterval = null;
+async function go() {
+  const url = document.getElementById('url').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  show('pmsg', 'Step 1/3 — Transcribing audio...');
+  hide('emsg');
+  document.getElementById('clips').style.display = 'none';
 
-  async function processVideo() {
-    const url = document.getElementById('youtubeUrl').value.trim();
-    if (!url) { showError('Please paste a YouTube URL first.'); return; }
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) { showError('Please enter a valid YouTube URL.'); return; }
+  try {
+    const r1 = await fetch(SERVER + '/transcribe?youtube_url=' + encodeURIComponent(url));
+    if (!r1.ok) throw new Error('Transcription failed: ' + r1.status);
+    const t1 = await r1.text();
+    let segments = '';
+    try { segments = JSON.parse(t1).answer || t1; } catch(e) { segments = t1; }
+    if (!segments) throw new Error('No segments from AI');
 
-    const btn = document.getElementById('processBtn');
-    btn.disabled = true;
-    showProcessing('Step 1/3 — Transcribing audio with AI...');
-    hideClips();
+    show('pmsg', 'Step 2/3 — Starting video cutting...');
+    const r2 = await fetch(SERVER + '/process?youtube_url=' + encodeURIComponent(url) + '&segments_text=' + encodeURIComponent(segments));
+    if (!r2.ok) throw new Error('Processing failed: ' + r2.status);
+    const d2 = await r2.json();
+    if (d2.error) throw new Error(d2.error);
 
-    try {
-      // Step 1: Call Make.com to get AI segments
-      showProcessing('Step 1/3 — Transcribing and segmenting video...');
-      const makeResponse = await fetch(`${SERVER_URL}/transcribe?youtube_url=${encodeURIComponent(url)}`);
-      if (!makeResponse.ok) throw new Error('Transcription failed');
-      const responseText = await makeResponse.text();
-      let segmentsText = '';
+    const jobId = d2.job_id;
+    show('pmsg', 'Step 3/3 — Cutting clips...');
+
+    const poll = setInterval(async () => {
       try {
-        const makeData = JSON.parse(responseText);
-        segmentsText = makeData.answer || makeData.Answer || makeData.segments || responseText;
-      } catch(e) {
-        segmentsText = responseText;
-      }
-      if (!segmentsText) throw new Error('No segments returned from AI');
-
-      // Step 2: Send to laptop server for video cutting
-      showProcessing('Step 2/3 — Downloading and cutting video clips...');
-      const processResponse = await fetch(`${SERVER_URL}/process?youtube_url=${encodeURIComponent(url)}&segments_text=${encodeURIComponent(segmentsText)}`);
-      if (!processResponse.ok) throw new Error('Video processing failed');
-      const processData = await processResponse.json();
-
-      if (processData.error) throw new Error(processData.error);
-
-      const jobId = processData.job_id;
-      showProcessing('Step 3/3 — Cutting clips... this takes 1-2 minutes...');
-
-      // Step 3: Poll for completion
-      pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(`${SERVER_URL}/status/${jobId}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === 'done') {
-            clearInterval(pollInterval);
-            btn.disabled = false;
-            if (statusData.clips && statusData.clips.length > 0) {
-              showClips(statusData.clips);
-            } else {
-              showError('No clips were generated. Please try again.');
-            }
-          } else if (statusData.status === 'error') {
-            clearInterval(pollInterval);
-            btn.disabled = false;
-            showError(statusData.error || 'Processing failed.');
-          } else if (statusData.status === 'cutting') {
-            showProcessing('Cutting clips... almost done!');
-          } else if (statusData.status === 'downloading') {
-            showProcessing('Downloading video...');
-          }
-        } catch (e) {
-          clearInterval(pollInterval);
+        const r3 = await fetch(SERVER + '/status/' + jobId);
+        const d3 = await r3.json();
+        if (d3.status === 'done') {
+          clearInterval(poll);
           btn.disabled = false;
-          showError('Lost connection to server. Is ngrok running?');
+          hide('pmsg');
+          showClips(d3.clips);
+        } else if (d3.status === 'error') {
+          clearInterval(poll);
+          btn.disabled = false;
+          hide('pmsg');
+          show('emsg', d3.error || 'Processing failed');
+        } else if (d3.status === 'cutting') {
+          show('pmsg', 'Cutting clips... almost done!');
+        } else if (d3.status === 'downloading') {
+          show('pmsg', 'Downloading video...');
         }
-      }, 10000);
+      } catch(e) {
+        clearInterval(poll);
+        btn.disabled = false;
+        show('emsg', 'Lost connection. Is your server running?');
+      }
+    }, 10000);
 
-    } catch (err) {
-      btn.disabled = false;
-      showError(err.message || 'Something went wrong. Please try again.');
-    }
+  } catch(err) {
+    btn.disabled = false;
+    hide('pmsg');
+    show('emsg', err.message);
   }
+}
 
-  function showClips(clips) {
-    hideStatus();
-    const section = document.getElementById('clipsSection');
-    const grid = document.getElementById('clipsGrid');
-    document.getElementById('clipsCount').textContent = `${clips.length} clip${clips.length !== 1 ? 's' : ''}`;
-    grid.innerHTML = '';
-    clips.forEach((clip, i) => {
-      if (!clip.url) return;
-      const card = document.createElement('div');
-      card.className = 'clip-card';
-      card.innerHTML = `
-        <div class="clip-video-wrapper">
-          <video controls preload="metadata">
-            <source src="${clip.url}" type="video/mp4">
-          </video>
-        </div>
-        <div class="clip-info">
-          <div class="clip-meta">
-            <div class="clip-number">Clip ${i + 1} of ${clips.length}</div>
-            <div class="clip-name">${clip.title || 'Topic ' + (i + 1)}</div>
-            ${clip.from && clip.to ? `<div class="clip-time">${clip.from} → ${clip.to}</div>` : ''}
-          </div>
-          <a href="${clip.url}" download class="btn-download">⬇ Download</a>
-        </div>`;
-      grid.appendChild(card);
-    });
-    section.style.display = 'block';
-    document.getElementById('howSection').style.display = 'none';
-    section.scrollIntoView({ behavior: 'smooth' });
-  }
+function showClips(clips) {
+  const grid = document.getElementById('clips-grid');
+  grid.innerHTML = '';
+  document.getElementById('clips-title').textContent = clips.length + ' Study Clips';
+  clips.forEach((c, i) => {
+    if (!c.url) return;
+    grid.innerHTML += '<div class="clip-card"><video controls preload="metadata"><source src="' + c.url + '" type="video/mp4"></video><div class="clip-info"><div><div class="clip-title">Clip ' + (i+1) + ': ' + (c.title||'Topic') + '</div><div class="clip-time">' + (c.from||'') + ' → ' + (c.to||'') + '</div></div><a href="' + c.url + '" download class="dl-btn">⬇ Download</a></div></div>';
+  });
+  document.getElementById('clips').style.display = 'block';
+}
 
-  function showProcessing(msg) {
-    document.getElementById('statusText').textContent = msg;
-    document.getElementById('statusProcessing').className = 'status processing show';
-    document.getElementById('statusError').className = 'status error';
-  }
-  function showError(msg) {
-    document.getElementById('errorText').textContent = msg;
-    document.getElementById('statusError').className = 'status error show';
-    document.getElementById('statusProcessing').className = 'status processing';
-  }
-  function hideStatus() {
-    document.getElementById('statusProcessing').className = 'status processing';
-    document.getElementById('statusError').className = 'status error';
-  }
-  function hideClips() {
-    document.getElementById('clipsSection').style.display = 'none';
-    document.getElementById('howSection').style.display = 'block';
-  }
-  document.getElementById('youtubeUrl').addEventListener('keydown', e => { if (e.key === 'Enter') processVideo(); });
+function show(id, msg) {
+  const el = document.getElementById(id);
+  if (msg) el.textContent = msg;
+  el.classList.add('show');
+}
+function hide(id) { document.getElementById(id).classList.remove('show'); }
+
+document.getElementById('url').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
 </script>
 </body>
 </html>
