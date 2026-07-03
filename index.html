@@ -51,7 +51,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 </div>
 <script>
 const SERVER = 'https://step-nimbly-antacid.ngrok-free.dev';
-const MAKE = 'https://hook.eu1.make.com/tcdmsacq1uyhuerysqwkwfwa4fm7t7gd';
+const HEADERS = {'ngrok-skip-browser-warning': '1'};
 
 async function go() {
   const url = document.getElementById('url').value.trim();
@@ -63,7 +63,7 @@ async function go() {
   document.getElementById('clips').style.display = 'none';
 
   try {
-    const r1 = await fetch(SERVER + '/transcribe?youtube_url=' + encodeURIComponent(url));
+    const r1 = await fetch(SERVER + '/transcribe?youtube_url=' + encodeURIComponent(url), {headers: HEADERS});
     if (!r1.ok) throw new Error('Transcription failed: ' + r1.status);
     const t1 = await r1.text();
     let segments = '';
@@ -71,7 +71,7 @@ async function go() {
     if (!segments) throw new Error('No segments from AI');
 
     show('pmsg', 'Step 2/3 — Starting video cutting...');
-    const r2 = await fetch(SERVER + '/process?youtube_url=' + encodeURIComponent(url) + '&segments_text=' + encodeURIComponent(segments));
+    const r2 = await fetch(SERVER + '/process?youtube_url=' + encodeURIComponent(url) + '&segments_text=' + encodeURIComponent(segments), {headers: HEADERS});
     if (!r2.ok) throw new Error('Processing failed: ' + r2.status);
     const d2 = await r2.json();
     if (d2.error) throw new Error(d2.error);
@@ -81,7 +81,7 @@ async function go() {
 
     const poll = setInterval(async () => {
       try {
-        const r3 = await fetch(SERVER + '/status/' + jobId);
+        const r3 = await fetch(SERVER + '/status/' + jobId, {headers: HEADERS});
         const d3 = await r3.json();
         if (d3.status === 'done') {
           clearInterval(poll);
