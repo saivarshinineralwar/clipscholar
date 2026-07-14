@@ -29,98 +29,103 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .clip-title { font-size: 16px; font-weight: 600; }
 .clip-time { font-size: 13px; color: #8888a0; margin-top: 4px; }
 .dl-btn { background: #22222e; border: 1px solid #2a2a38; border-radius: 8px; padding: 8px 16px; color: #f0f0f5; font-size: 13px; text-decoration: none; }
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 720px; margin: 0 auto 80px; padding: 0 24px; }
+.step { background: #1a1a22; border: 1px solid #2a2a38; border-radius: 12px; padding: 20px; text-align: center; }
+.step-icon { font-size: 28px; margin-bottom: 10px; }
+.step-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: #8888a0; }
+@media(max-width:600px){ .steps{grid-template-columns:1fr} .row{flex-direction:column} button{width:100%} }
 </style>
 </head>
 <body>
 <header><div class="logo">✂ ClipScholar</div></header>
 <div class="hero">
   <h1>Turn long videos into focused clips</h1>
-  <p>Paste any YouTube link. Get one short clip per topic.</p>
+  <p>Paste any YouTube link. Get one short clip per topic — no content missed.</p>
 </div>
 <div class="card">
   <div class="row">
     <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." />
     <button id="btn" onclick="go()">Process Video</button>
   </div>
-  <div class="msg processing" id="pmsg">Processing your video — this takes 2-3 minutes...</div>
+  <div class="msg processing" id="pmsg">Processing your video...</div>
   <div class="msg error" id="emsg">Error occurred. Please try again.</div>
 </div>
 <div class="clips" id="clips">
   <h2 id="clips-title">Your Study Clips</h2>
   <div id="clips-grid"></div>
 </div>
+<div class="steps" id="how">
+  <div class="step"><div class="step-icon">🔗</div><div class="step-label">Paste a link</div><div class="step-desc">Any YouTube video — lectures, tutorials, documentaries</div></div>
+  <div class="step"><div class="step-icon">🤖</div><div class="step-label">AI segments it</div><div class="step-desc">Transcribes and splits by topic automatically</div></div>
+  <div class="step"><div class="step-icon">▶</div><div class="step-label">Watch the clips</div><div class="step-desc">One clip per topic. Scroll through. Download any.</div></div>
+</div>
 <script>
 const SERVER = 'https://step-nimbly-antacid.ngrok-free.dev';
-const HEADERS = {'ngrok-skip-browser-warning': '1'};
+const H = {'ngrok-skip-browser-warning': '1'};
 
 async function go() {
   const url = document.getElementById('url').value.trim();
   if (!url) return;
   const btn = document.getElementById('btn');
   btn.disabled = true;
-  show('pmsg', 'Step 1/3 — Transcribing audio...');
+  show('pmsg', 'Starting — transcribing audio...');
   hide('emsg');
   document.getElementById('clips').style.display = 'none';
+  document.getElementById('how').style.display = 'none';
 
   try {
-    const r1 = await fetch(SERVER + '/transcribe?youtube_url=' + encodeURIComponent(url), {headers: HEADERS});
-    if (!r1.ok) throw new Error('Transcription failed: ' + r1.status);
-    const t1 = await r1.text();
-    let segments = '';
-    try { segments = JSON.parse(t1).answer || t1; } catch(e) { segments = t1; }
-    if (!segments) throw new Error('No segments from AI');
+    const r1 = await fetch(SERVER + '/start?youtube_url=' + encodeURIComponent(url), {headers: H});
+    if (!r1.ok) throw new Error('Server error: ' + r1.status);
+    const d1 = await r1.json();
+    if (d1.error) throw new Error(d1.error);
 
-    show('pmsg', 'Step 2/3 — Starting video cutting...');
-    const r2 = await fetch(SERVER + '/process?youtube_url=' + encodeURIComponent(url) + '&segments_text=' + encodeURIComponent(segments), {headers: HEADERS});
-    if (!r2.ok) throw new Error('Processing failed: ' + r2.status);
-    const d2 = await r2.json();
-    if (d2.error) throw new Error(d2.error);
-
-    const jobId = d2.job_id;
-    show('pmsg', 'Step 3/3 — Cutting clips...');
+    const jobId = d1.job_id;
 
     const poll = setInterval(async () => {
       try {
-        const r3 = await fetch(SERVER + '/status/' + jobId, {headers: HEADERS});
-        const d3 = await r3.json();
-        if (d3.status === 'done') {
+        const r2 = await fetch(SERVER + '/status/' + jobId, {headers: H});
+        const d2 = await r2.json();
+
+        if (d2.status === 'done') {
           clearInterval(poll);
           btn.disabled = false;
           hide('pmsg');
-          showClips(d3.clips);
-        } else if (d3.status === 'error') {
+          showClips(d2.clips);
+        } else if (d2.status === 'error') {
           clearInterval(poll);
           btn.disabled = false;
           hide('pmsg');
-          show('emsg', d3.error || 'Processing failed');
-        } else if (d3.status === 'cutting') {
-          show('pmsg', 'Cutting clips... almost done!');
-        } else if (d3.status === 'downloading') {
-          show('pmsg', 'Downloading video...');
+          show('emsg', d2.error || 'Processing failed');
+          document.getElementById('how').style.display = 'grid';
+        } else {
+          show('pmsg', d2.message || 'Processing...');
         }
       } catch(e) {
         clearInterval(poll);
         btn.disabled = false;
         show('emsg', 'Lost connection. Is your server running?');
       }
-    }, 10000);
+    }, 8000);
 
   } catch(err) {
     btn.disabled = false;
     hide('pmsg');
     show('emsg', err.message);
+    document.getElementById('how').style.display = 'grid';
   }
 }
 
 function showClips(clips) {
   const grid = document.getElementById('clips-grid');
   grid.innerHTML = '';
-  document.getElementById('clips-title').textContent = clips.length + ' Study Clips';
-  clips.forEach((c, i) => {
-    if (!c.url) return;
+  const good = clips.filter(c => c.url);
+  document.getElementById('clips-title').textContent = good.length + ' Study Clips';
+  good.forEach((c, i) => {
     grid.innerHTML += '<div class="clip-card"><video controls preload="metadata"><source src="' + c.url + '" type="video/mp4"></video><div class="clip-info"><div><div class="clip-title">Clip ' + (i+1) + ': ' + (c.title||'Topic') + '</div><div class="clip-time">' + (c.from||'') + ' → ' + (c.to||'') + '</div></div><a href="' + c.url + '" download class="dl-btn">⬇ Download</a></div></div>';
   });
   document.getElementById('clips').style.display = 'block';
+  document.getElementById('clips').scrollIntoView({behavior:'smooth'});
 }
 
 function show(id, msg) {
@@ -129,7 +134,6 @@ function show(id, msg) {
   el.classList.add('show');
 }
 function hide(id) { document.getElementById(id).classList.remove('show'); }
-
 document.getElementById('url').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
 </script>
 </body>
